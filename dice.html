@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Roll Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .round {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .round-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .round-title {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .dice-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .dice {
+            width: 119px;
+            height: 135px;
+            background-image: url('dice.png'); // Don't forget!
+            background-size: 357px 270px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .stats {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .stats span {
+            margin-right: 10px;
+        }
+        .config-panel {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        input {
+            padding: 5px;
+            width: 50px;
+        }
+        .passed {
+            outline: 2px solid #591;
+        }
+        .failed {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dice Roll Simulator</h1>
+    
+    <div class="config-panel">
+        <div class="controls">
+            <label for="initialDice">Initial dice:</label>
+            <input type="number" id="initialDice" min="1" value="5">
+            
+            <label for="totalRounds">Total rounds:</label>
+            <input type="number" id="totalRounds" min="1" value="1">
+            
+            <button id="setupRoundsBtn">Setup Rounds</button>
+        </div>
+    </div>
+    
+    <div id="roundsContainer">
+        <!-- Rounds will be added here -->
+    </div>
+    
+    <div class="controls" style="justify-content: center;">
+        <button id="rollAllBtn">Roll All Rounds</button>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const roundsContainer = document.getElementById('roundsContainer');
+            const setupRoundsBtn = document.getElementById('setupRoundsBtn');
+            const rollAllBtn = document.getElementById('rollAllBtn');
+            const initialDiceInput = document.getElementById('initialDice');
+            const totalRoundsInput = document.getElementById('totalRounds');
+            
+            let rounds = [];
+            
+            setupRoundsBtn.addEventListener('click', setupRounds);
+            rollAllBtn.addEventListener('click', rollAllRounds);
+            
+            function setupRounds() {
+                const totalRounds = parseInt(totalRoundsInput.value);
+                const initialDice = parseInt(initialDiceInput.value);
+                
+                // Clear existing rounds
+                roundsContainer.innerHTML = '';
+                rounds = [];
+                
+                // Create rounds
+                for (let i = 0; i < totalRounds; i++) {
+                    const roundNumber = i + 1;
+                    const roundDiv = document.createElement('div');
+                    roundDiv.className = 'round';
+                    roundDiv.dataset.roundNumber = roundNumber;
+                    
+                    const roundHeader = document.createElement('div');
+                    roundHeader.className = 'round-header';
+                    
+                    const roundTitle = document.createElement('div');
+                    roundTitle.className = 'round-title';
+                    roundTitle.textContent = `Round ${roundNumber}`;
+                    
+                    roundHeader.appendChild(roundTitle);
+                    
+                    const controlsDiv = document.createElement('div');
+                    controlsDiv.className = 'controls';
+                    
+                    const thresholdLabel = document.createElement('label');
+                    thresholdLabel.textContent = 'Success on:';
+                    const thresholdInput = document.createElement('input');
+                    thresholdInput.type = 'number';
+                    thresholdInput.min = '1';
+                    thresholdInput.max = '6';
+                    thresholdInput.value = i === 0 ? '4' : '5';
+                    thresholdInput.className = 'threshold';
+                    
+                    controlsDiv.appendChild(thresholdLabel);
+                    controlsDiv.appendChild(thresholdInput);
+                    
+                    const resultsDiv = document.createElement('div');
+                    resultsDiv.className = 'results';
+                    
+                    const diceContainer = document.createElement('div');
+                    diceContainer.className = 'dice-container';
+                    
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'stats';
+                    
+                    roundDiv.appendChild(roundHeader);
+                    roundDiv.appendChild(controlsDiv);
+                    roundDiv.appendChild(resultsDiv);
+                    resultsDiv.appendChild(diceContainer);
+                    resultsDiv.appendChild(statsDiv);
+                    
+                    roundsContainer.appendChild(roundDiv);
+                    rounds.push({
+                        element: roundDiv,
+                        thresholdInput: thresholdInput,
+                        diceContainer: diceContainer,
+                        statsDiv: statsDiv
+                    });
+                }
+            }
+            
+            function rollAllRounds() {
+                if (rounds.length === 0) {
+                    alert("Please setup rounds first!");
+                    return;
+                }
+                
+                const initialDice = parseInt(initialDiceInput.value);
+                let currentDiceCount = initialDice;
+                let currentRolls = [];
+                
+                for (let i = 0; i < rounds.length; i++) {
+                    const round = rounds[i];
+                    const threshold = parseInt(round.thresholdInput.value);
+                    
+                    // Clear previous results
+                    round.diceContainer.innerHTML = '';
+                    
+                    // If no dice left, skip remaining rounds
+                    if (currentDiceCount === 0) {
+                        round.statsDiv.textContent = "No dice remaining from previous round";
+                        continue;
+                    }
+                    
+                    // Roll dice for this round
+                    const rolls = [];
+                    for (let j = 0; j < currentDiceCount; j++) {
+                        rolls.push(Math.floor(Math.random() * 6) + 1);
+                    }
+                    
+                    // Display dice and calculate passed count
+                    const stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+                    let passedCount = 0;
+                    
+                    rolls.forEach(roll => {
+                        stats[roll]++;
+                        
+                        const diceElement = document.createElement('div');
+                        diceElement.className = 'dice';
+                        
+                        // Determine if this die passed
+                        const passed = roll >= threshold;
+                        if (passed) {
+                            passedCount++;
+                            diceElement.classList.add('passed');
+                        } else {
+                            diceElement.classList.add('failed');
+                        }
+                        
+                        // Position the sprite based on the roll value
+                        let x, y;
+                        if (roll <= 3) {
+                            x = (roll - 1) * (357 / 3);
+                            y = 0;
+                        } else {
+                            x = (roll - 4) * (357 / 3);
+                            y = 135; // Half of 270px height
+                        }
+                        
+                        diceElement.style.backgroundPosition = `-${x}px -${y}px`;
+                        round.diceContainer.appendChild(diceElement);
+                    });
+                    
+                    // Update stats
+                    round.statsDiv.innerHTML = '';
+                    
+                    for (let j = 1; j <= 6; j++) {
+                        const statSpan = document.createElement('span');
+                        statSpan.textContent = `${j}s: ${stats[j]}`;
+                        round.statsDiv.appendChild(statSpan);
+                    }
+                    
+                    const passedSpan = document.createElement('span');
+                    passedSpan.textContent = `Passed: ${passedCount}/${currentDiceCount}`;
+                    passedSpan.style.fontWeight = 'bold';
+                    round.statsDiv.appendChild(passedSpan);
+                    
+                    // Update dice count for next round
+                    currentDiceCount = passedCount;
+                }
+            }
+            
+            // Setup initial round
+            setupRounds();
+        });
+    </script>
+</body>
+</html>
